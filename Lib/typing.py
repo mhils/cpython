@@ -403,7 +403,6 @@ class _SpecialForm(_Final, _root=True):
     def __subclasscheck__(self, cls):
         raise TypeError(f"{self} cannot be used with issubclass()")
 
-    @_tp_cache
     def __getitem__(self, parameters):
         return self._getitem(self, parameters)
 
@@ -533,7 +532,7 @@ def Optional(self, parameters):
 
     Optional[X] is equivalent to Union[X, None].
     """
-    arg = _type_check(parameters, f"{self} requires a single type.")
+    arg = _type_check(parameters, f"{self} requires a single type.", module=_caller(3))
     return Union[arg, type(None)]
 
 @_LiteralSpecialForm
@@ -692,9 +691,9 @@ class ForwardRef(_Final, _root=True):
             elif localns is None:
                 localns = globalns
             if self.__forward_module__ is not None:
-                globalns = getattr(
-                    sys.modules.get(self.__forward_module__, None), '__dict__', globalns
-                )
+                ns = getattr(sys.modules.get(self.__forward_module__, None), '__dict__', None)
+                if ns is not None:
+                    globalns = localns = ns
             type_ =_type_check(
                 eval(self.__forward_code__, globalns, localns),
                 "Forward references must evaluate to types.",
